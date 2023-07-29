@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include pibicard *.css
+recursive-include pibicard *.csv
+recursive-include pibicard *.html
+recursive-include pibicard *.ico
+recursive-include pibicard *.js
+recursive-include pibicard *.json
+recursive-include pibicard *.md
+recursive-include pibicard *.png
+recursive-include pibicard *.py
+recursive-include pibicard *.svg
+recursive-include pibicard *.txt
+recursive-exclude pibicard *.pyc
