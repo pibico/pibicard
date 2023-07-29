@@ -32,7 +32,15 @@ app_license = "MIT"
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+  "Contact": [
+    "public/js/contact.js"
+  ]
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_list_js = {
+  "Contact": "public/js/contact_list.js"
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -90,6 +98,9 @@ app_license = "MIT"
 # override_doctype_class = {
 #	"ToDo": "custom_app.overrides.CustomToDo"
 # }
+override_doctype_class = {
+  "Contact": "pibicard.overrides.contact.CustomContact",
+}
 
 # Document Events
 # ---------------
@@ -188,3 +199,17 @@ user_data_fields = [
 #	"pibicard.auth.validate"
 # ]
 
+fixtures = [
+  {
+    "dt": "Custom Field",
+    "filters": [["dt", "in", ("Contact")], ["name", "like", "cr_%"]]
+  },
+  {
+    "dt": "Client Script",
+    "filters": [["dt", "in", ("Contact")], ["name", "like", "cr_%"]]
+  },
+  {
+    "dt": "Property Setter",
+    "filters": []
+  },  
+]
