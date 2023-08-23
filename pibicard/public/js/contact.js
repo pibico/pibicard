@@ -1,5 +1,13 @@
 frappe.ui.form.on('Contact', {
   onload: function (frm) {
+    let ai_web_site = document.querySelector('.frappe-control[data-fieldname="ai_web_site"]');
+    let ai_notes = document.querySelector('.frappe-control[data-fieldname="ai_notes"]');
+    if (ai_web_site) {
+      document.querySelector('.frappe-control[data-fieldname="cr_web_site"]').style.display = 'none'
+    }
+    if (ai_notes) {
+      document.querySelector('.frappe-control[data-fieldname="cr_notes"]').style.display = 'none'
+    }
     var template = '';
 
     if (frm.doc.__islocal) {
@@ -15,14 +23,7 @@ frappe.ui.form.on('Contact', {
     }
   },
   refresh: function (frm) {
-    let ai_web_site = document.querySelector('.frappe-control[data-fieldname="ai_web_site"]');
-    let ai_notes = document.querySelector('.frappe-control[data-fieldname="ai_notes"]');
-    if (ai_web_site) {
-      document.querySelector('.frappe-control[data-fieldname="cr_web_site"]').style.display = 'none'
-    }
-    if (ai_notes) {
-      document.querySelector('.frappe-control[data-fieldname="cr_notes"]').style.display = 'none'
-    }
+    
     if (!frm.doc.__islocal) {
       frm.add_custom_button(__("vCard Create"), function () {
         frappe.call({

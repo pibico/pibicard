@@ -137,6 +137,21 @@ def build_vcard(contact_name):
   if c.mobile_no:
     txt = 'TEL;TYPE=VOICE,CELL:{}'.format(c.mobile_no)
     vcard.append(txt)
+  
+  # Add Notes and Website (URL) either in pibiAID or pibiCARD
+  if hasattr(c, 'ai_notes') and c.ai_notes:
+    txt = 'NOTE:{}'.format(c.ai_notes)
+    vcard.append(txt)
+  if hasattr(c, 'cr_notes') and c.cr_notes:
+    txt = 'NOTE:{}'.format(c.cr_notes)
+    vcard.append(txt)
+
+  if hasattr(c, 'ai_web_site') and c.ai_web_site:
+    txt = 'URL:{}'.format(c.ai_web_site)
+    vcard.append(txt)
+  if hasattr(c, 'cr_web_site') and c.cr_web_site:
+    txt = 'URL:{}'.format(c.cr_web_site)
+    vcard.append(txt)  
 
   datetime = c.modified.strftime("%Y%m%dT%H%M%SZ")
   txt = 'REV:{}'.format(datetime)
