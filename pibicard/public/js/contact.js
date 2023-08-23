@@ -29,7 +29,7 @@ frappe.ui.form.on('Contact', {
                                 message: __('vCard generated successfully.'),
                                 indicator: 'green'
                             });
-                            frm.save();
+                            //frm.save();
                         }
                     }
                 });

@@ -48,7 +48,7 @@ def enqueue_upload_vcards_to_carddav(contact_names):
   job = enqueue(
     upload_vcards_to_carddav,
     queue='long',
-    timeout=7200,
+    timeout=14400,
     is_async=True,
     job_name="Upload vCard to CardDAV server",
     contact_names=contact_names)
