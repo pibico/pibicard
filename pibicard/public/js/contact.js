@@ -15,9 +15,13 @@ frappe.ui.form.on('Contact', {
     }
   },
   refresh: function (frm) {
-    if (frm.doc.ai_web_site) {
-      frm.toggle_display('cr_web_site', false);  // Hide cr_web_site
-      frm.toggle_display('cr_notes', false);     // Hide cr_notes
+    let ai_web_site = document.querySelector('.frappe-control[data-fieldname="ai_web_site"]');
+    let ai_notes = document.querySelector('.frappe-control[data-fieldname="ai_notes"]');
+    if (ai_web_site) {
+      document.querySelector('.frappe-control[data-fieldname="cr_web_site"]').style.display = 'none'
+    }
+    if (ai_notes) {
+      document.querySelector('.frappe-control[data-fieldname="cr_notes"]').style.display = 'none'
     }
     if (!frm.doc.__islocal) {
       frm.add_custom_button(__("vCard Create"), function () {
