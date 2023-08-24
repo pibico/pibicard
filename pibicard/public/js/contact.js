@@ -96,35 +96,16 @@ frappe.ui.form.on('Contact', {
         //        
         if (frm.doc.cr_vcard_text) {
           frm.add_custom_button(__("vCard Integration"), function () {
-                 
-            frappe.call({
-              method: 'pibicard.overrides.contact.get_site_config_values',
-              args: {
-                keys: 'carddav,carduser,cardkey',  // Replace with the keys you want to access
-              },
-              callback: function(response) {
-                if (response.message) {
-                  var value = response.message;
-                  const url = value['carddav'];
-                  const username = value['carduser'];
-                  const password = value['cardkey'];
-                  const vcard_text = frm.doc.cr_vcard_text;
+            const vcard_text = frm.doc.cr_vcard_text;
                     
-                  frappe.call({
-                    method: 'pibicard.overrides.contact.upload_vcard_to_carddav',
-                    args: {
-                      url: url,
-                      username: username,
-                      password: password,
-                      vcard_string: vcard_text
-                    },
-                    callback: function(res) {
-                      if (res.message){
-                        console.log(res.message);
-                      }
-                    }
-                  });
-
+            frappe.call({
+              method: 'pibicard.overrides.contact.upload_vcard_to_carddav',
+              args: {
+                vcard_string: vcard_text
+              },
+              callback: function(res) {
+                if (res.message){
+                  console.log(res.message);
                 }
               }
             });

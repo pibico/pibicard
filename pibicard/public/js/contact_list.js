@@ -12,9 +12,7 @@ frappe.listview_settings['Contact'] = {
         let reader = new FileReader();
 
         reader.onload = function(e) {
-          let vcfContent = e.target.result;
-          // Start the progress bar
-          frappe.show_progress(__("Importing Contacts"), 0, 100);       
+          let vcfContent = e.target.result;  
           // Call your server-side method
           frappe.call({
             method: 'pibicard.overrides.contact.create_contacts_from_vcf',
@@ -31,8 +29,6 @@ frappe.listview_settings['Contact'] = {
                   listview.refresh();
                 }
               } finally {  
-                // Hide the progress bar
-                frappe.hide_progress();
                 isUploading = false; // Clear the flag
               }
             }
@@ -43,13 +39,7 @@ frappe.listview_settings['Contact'] = {
       // Trigger the file input dialog
       fileInput.click();
     });
-      
-    // Event handler for real-time progress
-    frappe.realtime.on('vcf_upload_progress', function(data) {
-      // data.progress contains the current progress percentage
-      frappe.show_progress(__("Importing Contacts"), data.progress * 100, 100);
-    });
-
+    
     // Add a menu item for generating contact book
     listview.page.add_menu_item(__('Generate vCard Book'), function() {
       var selected_contacts = listview.get_checked_items();
@@ -108,15 +98,6 @@ frappe.listview_settings['Contact'] = {
 
       var contact_names = selected_contacts.map(function(contact) {
         return contact.name;
-      });
-      
-      // Show initial progress
-      frappe.show_progress(__('Integrating vCard Book'), 0, selected_contacts.length);
-
-      frappe.realtime.on('upload_vcards_progress', function(data) {
-        // Update a progress bar or something similar
-        console.log('Progress:', data.progress);
-        frappe.show_progress(__('Integrating vCard Book'), data.progress, selected_contacts.length);
       });
       
       frappe.call({

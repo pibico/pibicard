@@ -27,8 +27,14 @@ import vobject
 
 import re
 import json
+import html
 
 from datetime import datetime
+
+# Fetch CardDAV details
+url = frappe.conf.get('carddav')
+username = frappe.conf.get('carduser')
+password = frappe.conf.get('cardkey')
 
 class CustomContact(Contact):
   """
@@ -38,7 +44,7 @@ class CustomContact(Contact):
     # Skip execution if the contact is being created from a VCF file
     if self.flags.get('from_vcf'):
       return
-    
+
 @frappe.whitelist()
 def enqueue_upload_vcards_to_carddav(contact_names):
   # Convert the received JSON string back into a Python list
@@ -56,23 +62,15 @@ def enqueue_upload_vcards_to_carddav(contact_names):
 
 def upload_vcards_to_carddav(contact_names):
   total_contacts = len(contact_names)
-    
-  # Fetch CardDAV details
-  url = frappe.conf.get('carddav')
-  username = frappe.conf.get('carduser')
-  password = frappe.conf.get('cardkey')
 
   for i, contact_name in enumerate(contact_names, 1):
     contact = frappe.get_doc("Contact", contact_name)
-    
+
     # If vcard_string is empty, generate it with build_vcard method
     if not contact.cr_vcard_text:
       contact.cr_vcard_text = build_vcard(contact_name)
-      
+
     upload_vcard_to_carddav(
-      url,
-      username,
-      password,
       contact.cr_vcard_text
     )
     # Calculate progress percentage and publish realtime
@@ -86,9 +84,9 @@ def build_vcard(contact_name):
 
   vcard = ['BEGIN:VCARD', 'VERSION:3.0']
   txt = "PRODID:-//{}".format('pibifeed')
-    
+
   vcard.append(txt)
-  
+
   if not c.cr_vcard_text is None:
     existing = vobject.readOne(c.cr_vcard_text)
     uid = existing.uid.value
@@ -137,7 +135,7 @@ def build_vcard(contact_name):
   if c.mobile_no:
     txt = 'TEL;TYPE=VOICE,CELL:{}'.format(c.mobile_no)
     vcard.append(txt)
-  
+
   # Add Notes and Website (URL) either in pibiAID or pibiCARD
   if hasattr(c, 'ai_notes') and c.ai_notes:
     txt = 'NOTE:{}'.format(c.ai_notes)
@@ -184,12 +182,12 @@ def get_qrcode(input_data, logo):
   if logo:
     if not 'private' in logo:
       embedded_image_path = os.path.join(path, "sites", site_name, 'public', logo[1:])
-    else:  
+    else:
       embedded_image_path = os.path.join(path, "sites", site_name, logo[1:])
-    
+
     with Image.open(embedded_image_path) as embed_img:
       embedded = embed_img.copy()
-  
+
   else:
     embedded = None
 
@@ -211,30 +209,27 @@ def get_site_config_values(keys):
   for key in keys:
     values[key] = frappe.conf.get(key)
   return values
-  
+
 @frappe.whitelist()
-def upload_vcard_to_carddav(url, username, password, vcard_string):
+def upload_vcard_to_carddav(vcard_string):
   # Parse the vCard string into a vobject
   vcard = vobject.readOne(vcard_string)
   # Get the vCard UID
   uid = vcard.uid.value
+  if '-' in uid:
+    frappe.msgprint(_("vCards must be generated in Frappe to get synchronized"))
+    return
+    
   vcard_url = f"{url}/{uid}.vcf"
   # Check if vCard exists
   response = requests.get(vcard_url, auth=HTTPBasicAuth(username, password))
-  if response.status_code == 200:
-    # If vCard exists, update it
+  
+  if response.status_code in [200, 404]:
     response = requests.put(vcard_url, data=vcard_string, headers={"Content-Type": "text/vcard"}, auth=HTTPBasicAuth(username, password))
-  elif response.status_code == 404:
-    # If vCard does not exist, create a new one
-    response = requests.put(vcard_url, data=vcard_string, headers={"Content-Type": "text/vcard"}, auth=HTTPBasicAuth(username, password))
+    frappe.msgprint(f"vCard for {uid} created/updated successfully {response.status_code}")
   else:
-    frappe.throw(f"Error checking vCard existence for {uid}: {response.status_code}")
+    frappe.msgprint(f"vCard for {uid}: {response.status_code} {response.text}")
 
-  if response.status_code not in [201, 204]:
-    frappe.throw(f"Error uploading/updating vCard for {uid}: {response.status_code}")
-  else:
-   frappe.msgprint(f"vCard for {uid} uploaded/updated successfully")
-   
 @frappe.whitelist()
 def create_contacts_from_vcf(vcf_content):
     try:
@@ -244,8 +239,16 @@ def create_contacts_from_vcf(vcf_content):
 
         for i, vcard in enumerate(vobject.readComponents(vcf_content)):
             # Extract the first_name and last_name from the vCard
-            first_name = vcard.n.value.given if hasattr(vcard.n.value, "given") else ""
-            last_name = vcard.n.value.family if hasattr(vcard.n.value, "family") else ""
+            if hasattr(vcard, "n"):
+              first_name = vcard.n.value.given if hasattr(vcard.n.value, "given") else ""
+              last_name = vcard.n.value.family if hasattr(vcard.n.value, "family") else ""
+            else:
+              if hasattr(vcard, "fn"):
+                first_name = vcard.fn.value if hasattr(vcard, "fn") else ""
+                last_name = ""
+              else:
+                first_name = "Contact"
+                last_name = "No Name"
 
             # Create a new Contact in Frappe using the extracted information
             new_contact = frappe.get_doc({
@@ -257,8 +260,20 @@ def create_contacts_from_vcf(vcf_content):
                 'company_name': vcard.org.value[0] if hasattr(vcard, "org") else "",
                 'department': vcard.org.value[1] if hasattr(vcard, "org") and len(vcard.org.value) > 1 else "",
                 'designation': vcard.title.value if hasattr(vcard, "title") else "",
-                'web_site': vcard.url.value if hasattr(vcard, "url") else "",
             })
+
+            # Set custom fields for URL and NOTE if they exist
+            # Extract NOTE and URL
+            note_value = vcard.note.value if hasattr(vcard, "note") else ""
+            url_value = vcard.url.value if hasattr(vcard, "url") else ""
+            if url_value and 'ai_web_site' in new_contact.as_dict():
+              new_contact.ai_web_site = url_value
+            elif note_value and 'ai_notes' in new_contact.as_dict():
+              new_contact.ai_notes = note_value
+            elif url_value and 'cr_web_site' in new_contact.as_dict(): # Only if ai_web_site wasn't set
+              new_contact.cr_web_site = url_value
+            elif note_value and 'cr_notes' in new_contact.as_dict(): # Only if ai_notes wasn't set
+              new_contact.cr_notes = note_value
 
             email_value = vcard.email.value if hasattr(vcard, "email") else None
 
@@ -286,9 +301,12 @@ def create_contacts_from_vcf(vcf_content):
                             'phone': phone_number
                         })
 
+            
+            
             # Generate the full_name
             full_name = f"{first_name} {last_name}".strip()
             new_contact.full_name = full_name
+            new_contact.cr_vcard_text = vcf_content
 
             existing_contact = frappe.db.exists("Contact", {"full_name": full_name}) if full_name else None
             if existing_contact:
@@ -319,3 +337,150 @@ def create_contacts_from_vcf(vcf_content):
         # Log any other errors and re-raise the exception
         frappe.log_error(e, _("Failed to import VCF file due to an unexpected error"))
         raise e
+
+def update_contact_from_vcard(contact, vcard):
+    """
+    Update Frappe Contact based on provided vCard.
+    
+    Args:
+    - contact (dict): Existing Frappe Contact to be updated.
+    - vcard (vobject): vCard object containing contact details.
+    """
+
+    # Extracting attributes from vCard
+    first_name = vcard.n.value.given if hasattr(vcard.n.value, "given") else ""
+    last_name = vcard.n.value.family if hasattr(vcard.n.value, "family") else ""
+    note_value = vcard.note.value if hasattr(vcard, "note") else None
+    url_value = vcard.url.value if hasattr(vcard, "url") else None
+
+    # Fetch the existing Frappe Contact
+    contact_doc = frappe.get_doc("Contact", contact.name)
+
+    # Update the Frappe Contact's attributes
+    contact_doc.first_name = first_name
+    contact_doc.last_name = last_name
+    
+    # Set custom fields for URL and NOTE if they exist
+    if url_value and hasattr(contact_doc, 'ai_web_site'):
+        contact_doc.ai_web_site = url_value
+    elif url_value and hasattr(contact_doc, 'cr_web_site'):  # Only if ai_web_site wasn't set
+        contact_doc.cr_web_site = url_value
+    
+    if note_value and hasattr(contact_doc, 'ai_notes'):
+        contact_doc.ai_notes = note_value
+    elif note_value and hasattr(contact_doc, 'cr_notes'):  # Only if ai_notes wasn't set
+        contact_doc.cr_notes = note_value
+
+    email_value = vcard.email.value if hasattr(vcard, "email") else None
+
+    # Here, you might want logic to update email or add if not present
+    # Simplifying for this example:
+    if email_value:
+        contact_doc.set("email_ids", [{
+            'doctype': 'Contact Email',
+            'email_id': email_value,
+            'is_primary': 1
+        }])
+
+    # Handling for phone numbers, similar logic might be applied to update existing numbers or add new ones
+    if hasattr(vcard, "tel"):
+        for tel in vcard.tel_list:
+            phone_number = re.sub(r'\D', '', tel.value) if tel.value else ""
+            contact_doc.append('phone_nos', {
+                'doctype': 'Contact Phone',
+                'phone': phone_number
+            })
+    else:
+        for key in vcard.contents:
+            if key.startswith('item') and key.endswith('.TEL'):
+                phone_number = re.sub(r'\D', '', vcard.contents[key][0].value) if vcard.contents[key][0].value else ""
+                contact_doc.append('phone_nos', {
+                    'doctype': 'Contact Phone',
+                    'phone': phone_number
+                })
+
+    # Generate the full_name
+    full_name = f"{first_name} {last_name}".strip()
+    contact_doc.full_name = full_name
+    vcard_text_content = vcard.serialize()
+    contact_doc.cr_vcard_text = vcard_text_content
+
+    # Save the updates
+    contact_doc.save()
+
+    # Return updated contact (optional)
+    return contact_doc
+
+def synchronize_carddav_contacts():
+  """Synchronize contacts from CardDAV server to Frappe."""
+  # Fetch all vCards from CardDAV server
+  all_vcards = fetch_vcards_from_carddav(url, username, password)
+    
+  for vcard_string in all_vcards:
+    vcard = vobject.readOne(vcard_string)
+    uid = vcard.uid.value if hasattr(vcard, 'uid') else None
+    if not uid:
+      continue  # If no UID, skip to the next vCard
+    
+    # Check if contact exists in Frappe
+    contact_exists = frappe.db.exists("Contact", {"cr_vcard_text": ["LIKE", "%UID:" + uid + "%"]})
+        
+    if not contact_exists:
+      print("Creating")
+      create_contacts_from_vcf(vcard_string)
+      continue
+
+    # If contact exists, fetch it
+    contact = frappe.get_doc("Contact", contact_exists)
+    
+    # Compare the modification time
+    if '-' in vcard.rev.value:
+      carddav_mod_time = datetime.strptime(vcard.rev.value, "%Y-%m-%dT%H:%M:%SZ")
+    else:
+      carddav_mod_time = datetime.strptime(vcard.rev.value, "%Y%m%dT%H%M%SZ")
+    
+    frappe_mod_time = contact.modified
+    # If CardDAV contact is newer, update the Frappe contact
+    if carddav_mod_time.timestamp() + 7200 > frappe_mod_time.timestamp(): # 7200s is a gap between time in CardDAV Server and Frappe Server
+      print("Updating")
+      update_contact_from_vcard(contact, vcard)
+
+def fetch_vcards_from_carddav(url, username, password):
+    headers={
+      'Depth': '1',
+      'Content-Type': 'text/xml; charset=UTF-8',
+      'User-Agent': 'Python CardDAV Client'
+    }
+    xml_body = """
+      <d:propfind xmlns:d="DAV:" xmlns:card="urn:ietf:params:xml:ns:carddav">
+        <d:prop>
+          <card:address-data />
+        </d:prop>
+      </d:propfind>
+    """
+    response = requests.request(
+      'PROPFIND',
+      url,
+      headers=headers,
+      data=xml_body,
+      auth=HTTPBasicAuth(username, password)
+    )
+    if response.status_code != 207:
+      raise Exception(f"Failed to fetch contacts. Response code: {response.status_code}")
+
+    # Decode HTML entities from the response text
+    decoded_response = html.unescape(response.text)
+    
+    # Extract vCards from the decoded response
+    vcards = re.findall(r'BEGIN:VCARD.*?END:VCARD', decoded_response, re.DOTALL)
+    return vcards
+
+@frappe.whitelist()
+def schedule_synchronization():
+  enqueue(
+    synchronize_carddav_contacts,
+    queue='long',
+    timeout=300,
+    is_async=True,
+    job_name="Synchronize CardDAV contacts"
+  )

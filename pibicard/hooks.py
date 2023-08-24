@@ -117,10 +117,10 @@ override_doctype_class = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-#	"all": [
-#		"pibicard.tasks.all"
-#	],
+scheduler_events = {
+	"all": [
+		"pibicard.overrides.contact.schedule_synchronization"
+	],
 #	"daily": [
 #		"pibicard.tasks.daily"
 #	],
@@ -133,7 +133,7 @@ override_doctype_class = {
 #	"monthly": [
 #		"pibicard.tasks.monthly"
 #	]
-# }
+ }
 
 # Testing
 # -------
