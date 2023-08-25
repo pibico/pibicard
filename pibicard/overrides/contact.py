@@ -68,7 +68,7 @@ def upload_vcards_to_carddav(contact_names):
       
     except Exception as e:
       frappe.log_error(message=str(e), title=_(f"Exception on uploading vcard in {contact_name}"))
-      pass
+      continue
 
 @frappe.whitelist()
 def build_vcard(contact_name):

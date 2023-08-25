@@ -107,6 +107,7 @@ frappe.listview_settings['Contact'] = {
       var contact_names = selected_contacts.map(function(contact) {
         return contact.name;
       });
+      frappe.msgprint(__("This will last some time. Wait"));
       //
       frappe.call({
         method: 'pibicard.overrides.contact.upload_vcards_to_carddav',
