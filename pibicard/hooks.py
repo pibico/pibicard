@@ -119,7 +119,8 @@ override_doctype_class = {
 
 scheduler_events = {
 	"all": [
-		"pibicard.overrides.contact.schedule_synchronization"
+		#"pibicard.overrides.contact.schedule_synchronization",
+    "pibicard.overrides.contact.synchronize_carddav_contacts"
 	],
 #	"daily": [
 #		"pibicard.tasks.daily"

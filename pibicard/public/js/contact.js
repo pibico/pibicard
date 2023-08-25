@@ -105,7 +105,8 @@ frappe.ui.form.on('Contact', {
               },
               callback: function(res) {
                 if (res.message){
-                  console.log(res.message);
+                  console.log(res.message.response);
+                  frappe.msgprint(`cardDAV server: ${res.message.response}`);
                 }
               }
             });

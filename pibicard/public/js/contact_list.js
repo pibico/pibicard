@@ -10,10 +10,15 @@ frappe.listview_settings['Contact'] = {
         let file = fileInput.files[0];
         // Use FileReader to read the file's content
         let reader = new FileReader();
-
         reader.onload = function(e) {
-          let vcfContent = e.target.result;  
+          let vcfContent = e.target.result;
           // Call your server-side method
+          frappe.realtime.on('vcf_upload_progress', function(data) {
+            // Use the progress data sent from the server to display the progress
+            console.log(data.progress, data.name);
+            frappe.show_progress(__('Uploading/Synchronizing VCards...'), data.progress * 100, 100, data.name);
+          });
+          //
           frappe.call({
             method: 'pibicard.overrides.contact.create_contacts_from_vcf',
             args: {
@@ -29,8 +34,11 @@ frappe.listview_settings['Contact'] = {
                   listview.refresh();
                 }
               } finally {  
-                isUploading = false; // Clear the flag
+                let isUploading = false; // Clear the flag
               }
+            },
+            always: function() {
+              frappe.hide_progress();
             }
           });
         };
@@ -89,8 +97,8 @@ frappe.listview_settings['Contact'] = {
     
     // Add a menu item for integrating contact book
     listview.page.add_menu_item(__('Integrate Vcard Book'), function() {
+      
       var selected_contacts = listview.get_checked_items();
-
       if (selected_contacts.length === 0) {
         frappe.msgprint(__('No contacts selected.'));
         return;
@@ -99,15 +107,18 @@ frappe.listview_settings['Contact'] = {
       var contact_names = selected_contacts.map(function(contact) {
         return contact.name;
       });
-      
+      //
       frappe.call({
-        method: 'pibicard.overrides.contact.enqueue_upload_vcards_to_carddav',
+        method: 'pibicard.overrides.contact.upload_vcards_to_carddav',
         args: {
           'contact_names': JSON.stringify(contact_names)
         },
         callback: function(response) {
-          // The job has been enqueued, you can also display a message here
-          console.log('Job enqueued:', response.message);
+          frappe.realtime.on('upload_vcards_progress', function(data) {
+           // Use the progress data sent from the server to display the progress
+           console.log(data.progress, data.name);
+           frappe.show_progress(__('Uploading/Synchronizing VCards'), data.progress * 100, 100, data.name);  
+          });
         },
         always: function() {
           // Hide the progress bar when job is finished
@@ -115,6 +126,5 @@ frappe.listview_settings['Contact'] = {
         }
       });
     });
-
   }
 }
