@@ -458,7 +458,7 @@ def synchronize_carddav_contacts():
     
     frappe_mod_time = contact.modified
     # If CardDAV contact is newer, update the Frappe contact
-    gap = 360 # sec is a gap between time in CardDAV Server and Frappe Server
+    gap = 60 # sec is a gap between time in CardDAV Server and Frappe Server
     if carddav_mod_time.timestamp() + gap > frappe_mod_time.timestamp(): 
       #print("Updating")
       update_contact_from_vcard(contact, vcard)
