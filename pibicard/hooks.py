@@ -204,13 +204,5 @@ fixtures = [
   {
     "dt": "Custom Field",
     "filters": [["dt", "in", ("Contact")], ["name", "like", "%cr_%"]]
-  },
-  {
-    "dt": "Client Script",
-    "filters": [["dt", "in", ("Contact")], ["name", "like", "%cr_%"]]
-  },
-  {
-    "dt": "Property Setter",
-    "filters": []
-  },  
+  }
 ]
