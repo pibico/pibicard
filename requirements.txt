@@ -1,7 +1,5 @@
-# frappe -- https://github.com/frappe/frappe is installed via 'bench init'
-frappe
+# frappe is bench-managed -- never list it here. uuid removed (stdlib, PyPI pkg is broken py2-era)
 qrcode
 pillow
 six
-uuid
 vobject
