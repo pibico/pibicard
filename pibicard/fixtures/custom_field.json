@@ -149,7 +149,7 @@
   "mandatory_depends_on": null,
   "modified": "2024-12-08 16:10:40.233537",
   "module": "pibiAID",
-  "name": "Contact-custom_ai_ocr_extract",
+  "name": "Contact-ai_ocr",
   "no_copy": 0,
   "non_negative": 0,
   "options": null,
