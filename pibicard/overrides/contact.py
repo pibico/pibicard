@@ -204,14 +204,6 @@ def get_qrcode(input_data, logo):
   return "data:image/png;base64,{0}".format(b64.decode("utf-8"))
 
 @frappe.whitelist()
-def get_site_config_values(keys):
-  keys = keys.split(',')  # Convert the comma-separated string to a list
-  values = {}
-  for key in keys:
-    values[key] = frappe.conf.get(key)
-  return values
-
-@frappe.whitelist()
 def upload_vcard_to_carddav(vcard_string):
   # Parse the vCard string into a vobject
   vcard = vobject.readOne(vcard_string)
